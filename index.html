@@ -168,6 +168,7 @@
     text-align:center;
     padding:20px;
   }
+  /* Toast */
   #toast{
     position:fixed;
     bottom:20px;
@@ -196,8 +197,392 @@
     border-radius:6px;
     font-weight:600;
   }
+  /* Modal */
   .modal-overlay{
     position:fixed;
     inset:0;
     background:rgba(0,0,0,0.4);
-    display:none
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+  }
+  .modal-overlay.show{
+    display:flex;
+  }
+  .modal{
+    background:#fff;
+    border-radius:12px;
+    padding:20px;
+    width:80%;
+    max-width:300px;
+    text-align:center;
+  }
+  .modal p{
+    margin:0 0 16px;
+    font-size:15px;
+  }
+  .modal-actions{
+    display:flex;
+    gap:10px;
+  }
+  .modal-actions button{
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    font-size:14px;
+  }
+  .btn-cancel{
+    background:var(--cream-2);
+    color:var(--text);
+  }
+  .btn-confirm{
+    background:var(--danger);
+    color:#fff;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 待辦事項</h1>
+  <div class="input-row">
+    <input type="text" id="newItemInput" placeholder="輸入新的待辦事項…">
+    <button class="icon-btn" id="voiceBtn" title="語音輸入">🎤</button>
+    <button class="icon-btn" id="addBtn" title="新增">＋</button>
+  </div>
+  <div class="options-row">
+    <label style="color:var(--cream-2);">提醒週期：</label>
+    <select id="recurrenceSelect">
+      <option value="none">不重複</option>
+      <option value="daily">每天</option>
+      <option value="weekly">每週</option>
+      <option value="monthly">每月</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>待辦 <span id="pendingCount">0</span></h2>
+    <div id="pendingList"></div>
+  </section>
+  <section>
+    <h2>已完成 <span id="completedCount">0</span></h2>
+    <div id="completedList"></div>
+  </section>
+</main>
+
+<div id="toast">
+  <span id="toastMsg">已刪除</span>
+  <button id="undoBtn">復原</button>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <p>確定要刪除這個項目嗎？</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelDelete">取消</button>
+      <button class="btn-confirm" id="confirmDelete">刪除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'mini-todo-items';
+  let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  let pendingDeleteId = null;
+  let undoTimer = null;
+  let lastDeletedItem = null;
+  let lastDeletedIndex = null;
+
+  const pendingList = document.getElementById('pendingList');
+  const completedList = document.getElementById('completedList');
+  const pendingCount = document.getElementById('pendingCount');
+  const completedCount = document.getElementById('completedCount');
+  const newItemInput = document.getElementById('newItemInput');
+  const addBtn = document.getElementById('addBtn');
+  const voiceBtn = document.getElementById('voiceBtn');
+  const recurrenceSelect = document.getElementById('recurrenceSelect');
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
+  const undoBtn = document.getElementById('undoBtn');
+  const confirmModal = document.getElementById('confirmModal');
+  const cancelDelete = document.getElementById('cancelDelete');
+  const confirmDelete = document.getElementById('confirmDelete');
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+
+  function formatDate(ts){
+    const d = new Date(ts);
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  }
+
+  function recurrenceLabel(r){
+    return {daily:'每天', weekly:'每週', monthly:'每月'}[r] || '';
+  }
+
+  function render(){
+    pendingList.innerHTML = '';
+    completedList.innerHTML = '';
+    const pending = items.filter(i => !i.completed);
+    const completed = items.filter(i => i.completed);
+
+    pendingCount.textContent = pending.length;
+    completedCount.textContent = completed.length;
+
+    if(pending.length === 0){
+      pendingList.innerHTML = '<div class="empty-msg">目前沒有待辦事項</div>';
+    }
+    if(completed.length === 0){
+      completedList.innerHTML = '<div class="empty-msg">尚未完成任何項目</div>';
+    }
+
+    pending.forEach(item => pendingList.appendChild(renderItem(item)));
+    completed.forEach(item => completedList.appendChild(renderItem(item)));
+  }
+
+  function renderItem(item){
+    const div = document.createElement('div');
+    div.className = 'item' + (item.completed ? ' completed' : '');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = item.completed;
+    checkbox.addEventListener('change', () => toggleComplete(item.id));
+
+    const body = document.createElement('div');
+    body.className = 'item-body';
+
+    const title = document.createElement('div');
+    title.className = 'item-title';
+    title.textContent = item.title;
+
+    const meta = document.createElement('div');
+    meta.className = 'item-meta';
+    meta.innerHTML = `<span>建立於 ${formatDate(item.createdAt)}</span>`;
+    if(item.recurrence && item.recurrence !== 'none'){
+      meta.innerHTML += `<span class="badge">🔁 ${recurrenceLabel(item.recurrence)}</span>`;
+    }
+
+    body.appendChild(title);
+    body.appendChild(meta);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', () => requestDelete(item.id));
+
+    div.appendChild(checkbox);
+    div.appendChild(body);
+    div.appendChild(delBtn);
+    return div;
+  }
+
+  function addItem(title, recurrence){
+    if(!title.trim()) return;
+    items.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      title: title.trim(),
+      completed: false,
+      createdAt: Date.now(),
+      recurrence: recurrence || 'none'
+    });
+    save();
+    render();
+  }
+
+  function toggleComplete(id){
+    const item = items.find(i => i.id === id);
+    if(!item) return;
+    item.completed = !item.completed;
+    save();
+    render();
+  }
+
+  function requestDelete(id){
+    pendingDeleteId = id;
+    confirmModal.classList.add('show');
+  }
+
+  function performDelete(id){
+    const idx = items.findIndex(i => i.id === id);
+    if(idx === -1) return;
+    lastDeletedItem = items[idx];
+    lastDeletedIndex = idx;
+    items.splice(idx, 1);
+    save();
+    render();
+    showUndoToast();
+  }
+
+  function showUndoToast(){
+    toastMsg.textContent = '已刪除項目';
+    toast.classList.add('show');
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      lastDeletedItem = null;
+    }, 5000);
+  }
+
+  undoBtn.addEventListener('click', () => {
+    if(lastDeletedItem){
+      items.splice(lastDeletedIndex, 0, lastDeletedItem);
+      save();
+      render();
+    }
+    clearTimeout(undoTimer);
+    toast.classList.remove('show');
+    lastDeletedItem = null;
+  });
+
+  cancelDelete.addEventListener('click', () => {
+    confirmModal.classList.remove('show');
+    pendingDeleteId = null;
+  });
+
+  confirmDelete.addEventListener('click', () => {
+    confirmModal.classList.remove('show');
+    if(pendingDeleteId){
+      performDelete(pendingDeleteId);
+      pendingDeleteId = null;
+    }
+  });
+
+  addBtn.addEventListener('click', () => {
+    addItem(newItemInput.value, recurrenceSelect.value);
+    newItemInput.value = '';
+    recurrenceSelect.value = 'none';
+  });
+
+  newItemInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      addItem(newItemInput.value, recurrenceSelect.value);
+      newItemInput.value = '';
+      recurrenceSelect.value = 'none';
+    }
+  });
+
+  // Voice input (Web Speech API)
+  let recognizing = false;
+  let recognition = null;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(SpeechRecognition){
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-TW';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.addEventListener('result', (e) => {
+      const transcript = e.results[0][0].transcript;
+      newItemInput.value = transcript;
+    });
+    recognition.addEventListener('end', () => {
+      recognizing = false;
+      voiceBtn.classList.remove('active');
+    });
+    recognition.addEventListener('error', () => {
+      recognizing = false;
+      voiceBtn.classList.remove('active');
+    });
+
+    voiceBtn.addEventListener('click', () => {
+      if(recognizing){
+        recognition.stop();
+        return;
+      }
+      recognizing = true;
+      voiceBtn.classList.add('active');
+      recognition.start();
+    });
+  } else {
+    voiceBtn.style.display = 'none';
+  }
+
+  // Web Audio API alarm tone
+  function playAlarmTone(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      [880, 1108, 880].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.001, now + i*0.3);
+        gain.gain.exponentialRampToValueAtTime(0.3, now + i*0.3 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i*0.3 + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i*0.3);
+        osc.stop(now + i*0.3 + 0.3);
+      });
+    }catch(err){
+      console.warn('Alarm tone failed', err);
+    }
+  }
+
+  // Notifications
+  function requestNotificationPermission(){
+    if('Notification' in window && Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+  }
+  requestNotificationPermission();
+
+  function notify(title){
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification('待辦提醒', { body: title });
+    }
+    playAlarmTone();
+  }
+
+  // Simple recurrence check: runs every minute, checks daily/weekly/monthly items
+  // and notifies once per day based on last notified date stored on item.
+  function checkReminders(){
+    const today = new Date();
+    const todayStr = formatDate(today.getTime());
+    let changed = false;
+    items.forEach(item => {
+      if(item.completed || !item.recurrence || item.recurrence === 'none') return;
+      let shouldNotify = false;
+      if(item.recurrence === 'daily'){
+        shouldNotify = item.lastNotified !== todayStr;
+      } else if(item.recurrence === 'weekly'){
+        const createdDay = new Date(item.createdAt).getDay();
+        shouldNotify = today.getDay() === createdDay && item.lastNotified !== todayStr;
+      } else if(item.recurrence === 'monthly'){
+        const createdDate = new Date(item.createdAt).getDate();
+        shouldNotify = today.getDate() === createdDate && item.lastNotified !== todayStr;
+      }
+      if(shouldNotify){
+        notify(item.title);
+        item.lastNotified = todayStr;
+        changed = true;
+      }
+    });
+    if(changed) save();
+  }
+
+  setInterval(checkReminders, 60000);
+  checkReminders();
+
+  // Register service worker
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('SW registration failed', err);
+      });
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
