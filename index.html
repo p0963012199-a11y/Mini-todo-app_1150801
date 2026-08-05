@@ -344,7 +344,10 @@
 <body>
 
 <header>
-  <h1>待辦事項</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>待辦事項</h1>
+    <button id="backupBtn" style="background:rgba(255,255,255,0.18); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:12px; flex-shrink:0;">備份</button>
+  </div>
   <div class="input-row">
     <input type="text" id="newItemInput" placeholder="輸入新的待辦事項…">
     <button class="icon-btn" id="addBtn" title="新增">＋</button>
@@ -438,6 +441,21 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="backupModal">
+  <div class="modal">
+    <h3>備份與還原</h3>
+    <p style="font-size:13px; color:#777; text-align:left;">建議定期匯出備份，存到「檔案」App 或雲端硬碟，避免資料意外遺失。</p>
+    <div class="modal-actions" style="flex-direction:column;">
+      <button class="btn-save" id="exportBtn" style="width:100%; margin-bottom:10px;">📤 匯出備份（JSON 檔）</button>
+      <button class="btn-cancel" id="importBtn" style="width:100%;">📥 匯入備份</button>
+    </div>
+    <input type="file" id="importFileInput" accept="application/json" style="display:none;">
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-cancel" id="closeBackupModal" style="flex:none; width:100%;">關閉</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   const STORAGE_KEY = 'mini-todo-items';
@@ -483,6 +501,13 @@
   const newCategoryInput = document.getElementById('newCategoryInput');
   const addCategoryBtn = document.getElementById('addCategoryBtn');
   const closeCategoryModal = document.getElementById('closeCategoryModal');
+
+  const backupBtn = document.getElementById('backupBtn');
+  const backupModal = document.getElementById('backupModal');
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importFileInput = document.getElementById('importFileInput');
+  const closeBackupModal = document.getElementById('closeBackupModal');
 
   function save(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -930,6 +955,70 @@
       });
     });
   }
+
+  // Backup: export / import
+  backupBtn.addEventListener('click', () => {
+    backupModal.classList.add('show');
+  });
+  closeBackupModal.addEventListener('click', () => {
+    backupModal.classList.remove('show');
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const data = {
+      app: 'mini-todo',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      items: items,
+      categories: categories
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const pad = n => String(n).padStart(2, '0');
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+    a.href = url;
+    a.download = `todo-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  });
+
+  importBtn.addEventListener('click', () => {
+    importFileInput.click();
+  });
+
+  importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if(!data || !Array.isArray(data.items)){
+          throw new Error('invalid format');
+        }
+        const importedCount = data.items.length;
+        const ok = confirm(`確定要匯入嗎？\n\n目前有 ${items.length} 筆待辦事項，匯入後將被替換成備份檔裡的 ${importedCount} 筆。此動作無法復原。`);
+        if(ok){
+          items = data.items;
+          categories = Array.isArray(data.categories) ? data.categories : [];
+          save();
+          saveCategories();
+          populateCategorySelects();
+          render();
+          backupModal.classList.remove('show');
+          alert('匯入完成！');
+        }
+      } catch(err){
+        alert('匯入失敗：這不是有效的備份檔案。');
+      }
+      importFileInput.value = '';
+    };
+    reader.readAsText(file);
+  });
 
   populateCategorySelects();
   render();
