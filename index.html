@@ -187,6 +187,25 @@
     padding:4px 8px;
     flex-shrink:0;
   }
+  .drag-handle{
+    touch-action:none;
+    cursor:grab;
+    color:#b8b0a0;
+    font-size:18px;
+    line-height:1;
+    padding:4px 6px;
+    margin-top:2px;
+    flex-shrink:0;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .item.dragging{
+    opacity:0.9;
+    box-shadow:0 6px 16px rgba(0,0,0,0.25);
+    background:#fffef8;
+    position:relative;
+    z-index:50;
+  }
   .empty-msg{
     color:#999;
     font-size:13px;
@@ -606,13 +625,19 @@
       completedList.innerHTML = '<div class="empty-msg">尚未完成任何項目</div>';
     }
 
-    pending.forEach(item => pendingList.appendChild(renderItem(item)));
-    completed.forEach(item => completedList.appendChild(renderItem(item)));
+    pending.forEach(item => pendingList.appendChild(renderItem(item, pendingList)));
+    completed.forEach(item => completedList.appendChild(renderItem(item, completedList)));
   }
 
-  function renderItem(item){
+  function renderItem(item, listEl){
     const div = document.createElement('div');
     div.className = 'item' + (item.completed ? ' completed' : '');
+    div.dataset.id = item.id;
+
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.setAttribute('aria-label', '拖曳排序');
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -644,10 +669,90 @@
     delBtn.textContent = '✕';
     delBtn.addEventListener('click', (e) => { e.stopPropagation(); requestDelete(item.id); });
 
+    div.appendChild(handle);
     div.appendChild(checkbox);
     div.appendChild(body);
     div.appendChild(delBtn);
+
+    initDrag(handle, div, listEl);
+
     return div;
+  }
+
+  // Drag-to-reorder (long-press then drag, touch-friendly)
+  function initDrag(handle, div, listEl){
+    let pressTimer = null;
+    let dragActive = false;
+    let startX = 0, startY = 0;
+
+    function onMove(ev){
+      if(!dragActive){
+        if(Math.abs(ev.clientY - startY) > 10 || Math.abs(ev.clientX - startX) > 10){
+          clearTimeout(pressTimer);
+        }
+        return;
+      }
+      ev.preventDefault();
+      const y = ev.clientY;
+      const siblings = [...listEl.querySelectorAll('.item')].filter(el => el !== div);
+      for(const sib of siblings){
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if(y < mid && sib.previousElementSibling !== div){
+          listEl.insertBefore(div, sib);
+          break;
+        } else if(y >= mid && sib.nextElementSibling !== div){
+          listEl.insertBefore(div, sib.nextElementSibling);
+          break;
+        }
+      }
+    }
+
+    function onUp(){
+      clearTimeout(pressTimer);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      if(dragActive){
+        div.classList.remove('dragging');
+        finalizeReorder(listEl);
+      }
+      dragActive = false;
+    }
+
+    handle.addEventListener('pointerdown', (e) => {
+      if(e.button !== undefined && e.button !== 0) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      pressTimer = setTimeout(() => {
+        dragActive = true;
+        div.classList.add('dragging');
+        if(navigator.vibrate) navigator.vibrate(10);
+      }, 300);
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+    });
+
+    handle.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  function applyReorder(containerIds){
+    const indices = containerIds
+      .map(id => items.findIndex(i => i.id === id))
+      .filter(idx => idx !== -1)
+      .sort((a, b) => a - b);
+    const newItemsAtIndices = containerIds
+      .map(id => items.find(i => i.id === id))
+      .filter(Boolean);
+    indices.forEach((idx, i) => { items[idx] = newItemsAtIndices[i]; });
+  }
+
+  function finalizeReorder(listEl){
+    const ids = [...listEl.querySelectorAll('.item')].map(el => el.dataset.id);
+    applyReorder(ids);
+    save();
+    render();
   }
 
   function addItem(title, recurrence, categoryId, startTimeVal){
