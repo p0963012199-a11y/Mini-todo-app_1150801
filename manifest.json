@@ -1,11 +1,10 @@
 {
-  "name": "待辦事項",
+  "name": "待辦",
   "short_name": "待辦",
-  "description": "簡潔的待辦事項管理工具，支援重複提醒",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F5F2EC",
-  "theme_color": "#3C4B64",
+  "background_color": "#F5F0E6",
+  "theme_color": "#4A90C2",
   "orientation": "portrait",
   "icons": [
     {

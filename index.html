@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>待辦事項</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3B3A6E">
+<meta name="theme-color" content="#4A90C2">
 <style>
   :root{
     --cream:#F5F0E6;
     --cream-2:#EDE6D6;
-    --indigo:#2E2C5C;
-    --indigo-2:#3B3A6E;
-    --indigo-light:#6A67B0;
+    --header:#4A90C2;
+    --header-2:#3A7AA8;
+    --header-light:#7FBEE0;
     --accent:#C9A66B;
     --danger:#B5533C;
     --text:#2A2A2A;
@@ -27,8 +27,8 @@
     -webkit-tap-highlight-color:transparent;
   }
   header{
-    background:var(--indigo);
-    color:var(--cream);
+    background:var(--header);
+    color:#fff;
     padding:20px 16px 16px;
     position:sticky;
     top:0;
@@ -63,25 +63,26 @@
     height:40px;
     border-radius:8px;
     border:none;
-    background:var(--indigo-2);
-    color:var(--cream);
+    background:var(--header-2);
+    color:#fff;
     font-size:18px;
     display:flex;
     align-items:center;
     justify-content:center;
     flex-shrink:0;
   }
-  .icon-btn.active{
-    background:var(--danger);
-  }
   .options-row{
     display:flex;
     gap:8px;
-    margin-top:8px;
+    margin-top:10px;
     font-size:13px;
     align-items:center;
+    flex-wrap:wrap;
   }
-  select{
+  .options-row label{
+    color:rgba(255,255,255,0.9);
+  }
+  select, input[type=datetime-local], input[type=text].modal-input{
     padding:6px 8px;
     border-radius:6px;
     border:none;
@@ -95,12 +96,31 @@
     margin:0 auto;
     padding-bottom:80px;
   }
+  .chip-row{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .chip{
+    padding:5px 12px;
+    border-radius:16px;
+    background:var(--cream-2);
+    color:var(--header-2);
+    font-size:12px;
+    border:1px solid var(--border);
+  }
+  .chip.active{
+    background:var(--header);
+    color:#fff;
+    border-color:var(--header);
+  }
   section{
     margin-bottom:24px;
   }
   section h2{
     font-size:15px;
-    color:var(--indigo-2);
+    color:var(--header-2);
     border-bottom:2px solid var(--border);
     padding-bottom:6px;
     margin-bottom:10px;
@@ -125,12 +145,13 @@
     width:22px;
     height:22px;
     margin-top:2px;
-    accent-color:var(--indigo-2);
+    accent-color:var(--header-2);
     flex-shrink:0;
   }
   .item-body{
     flex:1;
     min-width:0;
+    cursor:pointer;
   }
   .item-title{
     font-size:15px;
@@ -149,10 +170,14 @@
   }
   .badge{
     background:var(--cream-2);
-    color:var(--indigo-2);
+    color:var(--header-2);
     padding:2px 6px;
     border-radius:10px;
     font-size:10px;
+  }
+  .badge.cat{
+    background:#E4EEF5;
+    color:var(--header-2);
   }
   .delete-btn{
     background:none;
@@ -174,7 +199,7 @@
     bottom:20px;
     left:50%;
     transform:translateX(-50%) translateY(100px);
-    background:var(--indigo);
+    background:var(--header-2);
     color:#fff;
     padding:12px 16px;
     border-radius:10px;
@@ -191,7 +216,7 @@
   }
   #toast button{
     background:var(--accent);
-    color:var(--indigo);
+    color:#2A2A2A;
     border:none;
     padding:6px 12px;
     border-radius:6px;
@@ -206,6 +231,7 @@
     align-items:center;
     justify-content:center;
     z-index:200;
+    padding:20px;
   }
   .modal-overlay.show{
     display:flex;
@@ -214,17 +240,44 @@
     background:#fff;
     border-radius:12px;
     padding:20px;
-    width:80%;
-    max-width:300px;
+    width:100%;
+    max-width:340px;
     text-align:center;
   }
   .modal p{
     margin:0 0 16px;
     font-size:15px;
   }
+  .modal h3{
+    margin:0 0 14px;
+    font-size:16px;
+    color:var(--header-2);
+  }
+  .modal-field{
+    text-align:left;
+    margin-bottom:12px;
+  }
+  .modal-field label{
+    display:block;
+    font-size:12px;
+    color:#777;
+    margin-bottom:4px;
+  }
+  .modal-field input[type=text],
+  .modal-field select,
+  .modal-field input[type=datetime-local]{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    background:var(--cream-2);
+    color:var(--text);
+  }
   .modal-actions{
     display:flex;
     gap:10px;
+    margin-top:6px;
   }
   .modal-actions button{
     flex:1;
@@ -241,19 +294,65 @@
     background:var(--danger);
     color:#fff;
   }
+  .btn-save{
+    background:var(--header);
+    color:#fff;
+  }
+  .cat-manage-list{
+    text-align:left;
+    max-height:180px;
+    overflow-y:auto;
+    margin-bottom:12px;
+  }
+  .cat-manage-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:8px 4px;
+    border-bottom:1px solid var(--border);
+    font-size:14px;
+  }
+  .cat-manage-row button{
+    background:none;
+    border:none;
+    color:var(--danger);
+    font-size:15px;
+  }
+  .cat-add-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .cat-add-row input{
+    flex:1;
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--cream-2);
+    font-size:13px;
+  }
+  .cat-add-row button{
+    padding:8px 12px;
+    border:none;
+    border-radius:8px;
+    background:var(--header);
+    color:#fff;
+    font-size:13px;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📋 待辦事項</h1>
+  <h1>待辦事項</h1>
   <div class="input-row">
     <input type="text" id="newItemInput" placeholder="輸入新的待辦事項…">
-    <button class="icon-btn" id="voiceBtn" title="語音輸入">🎤</button>
     <button class="icon-btn" id="addBtn" title="新增">＋</button>
   </div>
   <div class="options-row">
-    <label style="color:var(--cream-2);">提醒週期：</label>
+    <label>分類：</label>
+    <select id="categorySelect"></select>
+    <label>提醒：</label>
     <select id="recurrenceSelect">
       <option value="none">不重複</option>
       <option value="daily">每天</option>
@@ -261,9 +360,14 @@
       <option value="monthly">每月</option>
     </select>
   </div>
+  <div class="options-row" id="startTimeRow" style="display:none;">
+    <label>開始時間：</label>
+    <input type="datetime-local" id="startTimeInput">
+  </div>
 </header>
 
 <main>
+  <div class="chip-row" id="chipRow"></div>
   <section>
     <h2>待辦 <span id="pendingCount">0</span></h2>
     <div id="pendingList"></div>
@@ -289,14 +393,63 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>編輯待辦事項</h3>
+    <div class="modal-field">
+      <label>內容</label>
+      <input type="text" id="editTitleInput">
+    </div>
+    <div class="modal-field">
+      <label>分類</label>
+      <select id="editCategorySelect"></select>
+    </div>
+    <div class="modal-field">
+      <label>提醒重複</label>
+      <select id="editRecurrenceSelect">
+        <option value="none">不重複</option>
+        <option value="daily">每天</option>
+        <option value="weekly">每週</option>
+        <option value="monthly">每月</option>
+      </select>
+    </div>
+    <div class="modal-field" id="editStartTimeField">
+      <label>開始時間</label>
+      <input type="datetime-local" id="editStartTimeInput">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelEdit">取消</button>
+      <button class="btn-save" id="saveEdit">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="categoryModal">
+  <div class="modal">
+    <h3>管理分類</h3>
+    <div class="cat-manage-list" id="catManageList"></div>
+    <div class="cat-add-row">
+      <input type="text" id="newCategoryInput" placeholder="新增分類名稱">
+      <button id="addCategoryBtn">新增</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" id="closeCategoryModal" style="flex:none; width:100%;">完成</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   const STORAGE_KEY = 'mini-todo-items';
+  const CATEGORY_KEY = 'mini-todo-categories';
   let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  let categories = JSON.parse(localStorage.getItem(CATEGORY_KEY) || '[]');
   let pendingDeleteId = null;
   let undoTimer = null;
   let lastDeletedItem = null;
   let lastDeletedIndex = null;
+  let editingId = null;
+  let activeFilter = 'all'; // 'all' | 'uncat' | categoryId
 
   const pendingList = document.getElementById('pendingList');
   const completedList = document.getElementById('completedList');
@@ -304,8 +457,11 @@
   const completedCount = document.getElementById('completedCount');
   const newItemInput = document.getElementById('newItemInput');
   const addBtn = document.getElementById('addBtn');
-  const voiceBtn = document.getElementById('voiceBtn');
+  const categorySelect = document.getElementById('categorySelect');
   const recurrenceSelect = document.getElementById('recurrenceSelect');
+  const startTimeRow = document.getElementById('startTimeRow');
+  const startTimeInput = document.getElementById('startTimeInput');
+  const chipRow = document.getElementById('chipRow');
   const toast = document.getElementById('toast');
   const toastMsg = document.getElementById('toastMsg');
   const undoBtn = document.getElementById('undoBtn');
@@ -313,8 +469,26 @@
   const cancelDelete = document.getElementById('cancelDelete');
   const confirmDelete = document.getElementById('confirmDelete');
 
+  const editModal = document.getElementById('editModal');
+  const editTitleInput = document.getElementById('editTitleInput');
+  const editCategorySelect = document.getElementById('editCategorySelect');
+  const editRecurrenceSelect = document.getElementById('editRecurrenceSelect');
+  const editStartTimeField = document.getElementById('editStartTimeField');
+  const editStartTimeInput = document.getElementById('editStartTimeInput');
+  const cancelEdit = document.getElementById('cancelEdit');
+  const saveEdit = document.getElementById('saveEdit');
+
+  const categoryModal = document.getElementById('categoryModal');
+  const catManageList = document.getElementById('catManageList');
+  const newCategoryInput = document.getElementById('newCategoryInput');
+  const addCategoryBtn = document.getElementById('addCategoryBtn');
+  const closeCategoryModal = document.getElementById('closeCategoryModal');
+
   function save(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+  function saveCategories(){
+    localStorage.setItem(CATEGORY_KEY, JSON.stringify(categories));
   }
 
   function formatDate(ts){
@@ -322,15 +496,80 @@
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
   }
 
+  function toLocalInputValue(ts){
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
   function recurrenceLabel(r){
     return {daily:'每天', weekly:'每週', monthly:'每月'}[r] || '';
   }
 
+  function categoryName(id){
+    if(!id) return '未分類';
+    const c = categories.find(c => c.id === id);
+    return c ? c.name : '未分類';
+  }
+
+  function populateCategorySelects(){
+    [categorySelect, editCategorySelect].forEach(sel => {
+      const current = sel.value;
+      sel.innerHTML = '<option value="">未分類</option>' +
+        categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') +
+        '<option value="__quickadd__">➕ 新增分類</option>' +
+        '<option value="__manage__">🗂 管理分類…</option>';
+      if([...sel.options].some(o => o.value === current)) sel.value = current;
+    });
+  }
+
+  function quickAddCategory(sel){
+    const name = prompt('新增分類名稱：');
+    if(name && name.trim()){
+      const newCat = { id: 'cat_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4), name: name.trim() };
+      categories.push(newCat);
+      saveCategories();
+      populateCategorySelects();
+      sel.value = newCat.id;
+    } else {
+      sel.value = '';
+    }
+  }
+
+  function escapeHtml(s){
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function renderChips(){
+    chipRow.innerHTML = '';
+    const chips = [{id:'all', name:'全部'}, ...categories, {id:'uncat', name:'未分類'}];
+    chips.forEach(c => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (activeFilter === c.id ? ' active' : '');
+      chip.textContent = c.name;
+      chip.addEventListener('click', () => {
+        activeFilter = c.id;
+        render();
+      });
+      chipRow.appendChild(chip);
+    });
+  }
+
+  function matchesFilter(item){
+    if(activeFilter === 'all') return true;
+    if(activeFilter === 'uncat') return !item.categoryId;
+    return item.categoryId === activeFilter;
+  }
+
   function render(){
+    renderChips();
     pendingList.innerHTML = '';
     completedList.innerHTML = '';
-    const pending = items.filter(i => !i.completed);
-    const completed = items.filter(i => i.completed);
+    const filtered = items.filter(matchesFilter);
+    const pending = filtered.filter(i => !i.completed);
+    const completed = filtered.filter(i => i.completed);
 
     pendingCount.textContent = pending.length;
     completedCount.textContent = completed.length;
@@ -357,6 +596,7 @@
 
     const body = document.createElement('div');
     body.className = 'item-body';
+    body.addEventListener('click', () => openEditModal(item.id));
 
     const title = document.createElement('div');
     title.className = 'item-title';
@@ -365,8 +605,10 @@
     const meta = document.createElement('div');
     meta.className = 'item-meta';
     meta.innerHTML = `<span>建立於 ${formatDate(item.createdAt)}</span>`;
+    meta.innerHTML += `<span class="badge cat">${escapeHtml(categoryName(item.categoryId))}</span>`;
     if(item.recurrence && item.recurrence !== 'none'){
-      meta.innerHTML += `<span class="badge">🔁 ${recurrenceLabel(item.recurrence)}</span>`;
+      const startLabel = item.recurrenceStart ? formatDate(item.recurrenceStart) : formatDate(item.createdAt);
+      meta.innerHTML += `<span class="badge">🔁 ${recurrenceLabel(item.recurrence)}（自 ${startLabel}）</span>`;
     }
 
     body.appendChild(title);
@@ -375,7 +617,7 @@
     const delBtn = document.createElement('button');
     delBtn.className = 'delete-btn';
     delBtn.textContent = '✕';
-    delBtn.addEventListener('click', () => requestDelete(item.id));
+    delBtn.addEventListener('click', (e) => { e.stopPropagation(); requestDelete(item.id); });
 
     div.appendChild(checkbox);
     div.appendChild(body);
@@ -383,14 +625,22 @@
     return div;
   }
 
-  function addItem(title, recurrence){
+  function addItem(title, recurrence, categoryId, startTimeVal){
     if(!title.trim()) return;
+    const now = Date.now();
+    let recurrenceStart = now;
+    if(recurrence !== 'none' && startTimeVal){
+      const parsed = new Date(startTimeVal).getTime();
+      if(!isNaN(parsed)) recurrenceStart = parsed;
+    }
     items.unshift({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
       title: title.trim(),
       completed: false,
-      createdAt: Date.now(),
-      recurrence: recurrence || 'none'
+      createdAt: now,
+      recurrence: recurrence || 'none',
+      recurrenceStart: recurrence !== 'none' ? recurrenceStart : null,
+      categoryId: categoryId || ''
     });
     save();
     render();
@@ -454,55 +704,152 @@
     }
   });
 
-  addBtn.addEventListener('click', () => {
-    addItem(newItemInput.value, recurrenceSelect.value);
+  function resetCreateForm(){
     newItemInput.value = '';
     recurrenceSelect.value = 'none';
+    categorySelect.value = '';
+    startTimeRow.style.display = 'none';
+    startTimeInput.value = '';
+  }
+
+  addBtn.addEventListener('click', () => {
+    addItem(newItemInput.value, recurrenceSelect.value, categorySelect.value, startTimeInput.value);
+    resetCreateForm();
   });
 
   newItemInput.addEventListener('keydown', (e) => {
     if(e.key === 'Enter'){
-      addItem(newItemInput.value, recurrenceSelect.value);
-      newItemInput.value = '';
-      recurrenceSelect.value = 'none';
+      addItem(newItemInput.value, recurrenceSelect.value, categorySelect.value, startTimeInput.value);
+      resetCreateForm();
     }
   });
 
-  // Voice input (Web Speech API)
-  let recognizing = false;
-  let recognition = null;
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(SpeechRecognition){
-    recognition = new SpeechRecognition();
-    recognition.lang = 'zh-TW';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+  recurrenceSelect.addEventListener('change', () => {
+    if(recurrenceSelect.value !== 'none'){
+      startTimeRow.style.display = 'flex';
+      if(!startTimeInput.value) startTimeInput.value = toLocalInputValue(Date.now());
+    } else {
+      startTimeRow.style.display = 'none';
+    }
+  });
 
-    recognition.addEventListener('result', (e) => {
-      const transcript = e.results[0][0].transcript;
-      newItemInput.value = transcript;
-    });
-    recognition.addEventListener('end', () => {
-      recognizing = false;
-      voiceBtn.classList.remove('active');
-    });
-    recognition.addEventListener('error', () => {
-      recognizing = false;
-      voiceBtn.classList.remove('active');
-    });
-
-    voiceBtn.addEventListener('click', () => {
-      if(recognizing){
-        recognition.stop();
-        return;
-      }
-      recognizing = true;
-      voiceBtn.classList.add('active');
-      recognition.start();
-    });
-  } else {
-    voiceBtn.style.display = 'none';
+  // Edit modal
+  function openEditModal(id){
+    const item = items.find(i => i.id === id);
+    if(!item) return;
+    editingId = id;
+    populateCategorySelects();
+    editTitleInput.value = item.title;
+    editCategorySelect.value = item.categoryId || '';
+    editRecurrenceSelect.value = item.recurrence || 'none';
+    editStartTimeField.style.display = editRecurrenceSelect.value !== 'none' ? 'block' : 'none';
+    editStartTimeInput.value = toLocalInputValue(item.recurrenceStart || item.createdAt);
+    editModal.classList.add('show');
   }
+
+  editRecurrenceSelect.addEventListener('change', () => {
+    editStartTimeField.style.display = editRecurrenceSelect.value !== 'none' ? 'block' : 'none';
+    if(editRecurrenceSelect.value !== 'none' && !editStartTimeInput.value){
+      editStartTimeInput.value = toLocalInputValue(Date.now());
+    }
+  });
+
+  cancelEdit.addEventListener('click', () => {
+    editModal.classList.remove('show');
+    editingId = null;
+  });
+
+  saveEdit.addEventListener('click', () => {
+    if(!editingId) return;
+    const item = items.find(i => i.id === editingId);
+    if(!item) return;
+    const newTitle = editTitleInput.value.trim();
+    if(newTitle) item.title = newTitle;
+    item.categoryId = editCategorySelect.value || '';
+    item.recurrence = editRecurrenceSelect.value || 'none';
+    if(item.recurrence !== 'none'){
+      const parsed = new Date(editStartTimeInput.value).getTime();
+      item.recurrenceStart = !isNaN(parsed) ? parsed : (item.recurrenceStart || item.createdAt);
+      // reset lastNotified so schedule reflects new start time
+      item.lastNotified = null;
+    } else {
+      item.recurrenceStart = null;
+      item.lastNotified = null;
+    }
+    save();
+    render();
+    editModal.classList.remove('show');
+    editingId = null;
+  });
+
+  // Category management
+  function renderCategoryManageList(){
+    catManageList.innerHTML = '';
+    if(categories.length === 0){
+      catManageList.innerHTML = '<div class="empty-msg">尚未新增分類</div>';
+      return;
+    }
+    categories.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'cat-manage-row';
+      const name = document.createElement('span');
+      name.textContent = c.name;
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', () => {
+        categories = categories.filter(cat => cat.id !== c.id);
+        items.forEach(item => { if(item.categoryId === c.id) item.categoryId = ''; });
+        saveCategories();
+        save();
+        populateCategorySelects();
+        renderCategoryManageList();
+        render();
+      });
+      row.appendChild(name);
+      row.appendChild(delBtn);
+      catManageList.appendChild(row);
+    });
+  }
+
+  addCategoryBtn.addEventListener('click', () => {
+    const name = newCategoryInput.value.trim();
+    if(!name) return;
+    categories.push({ id: 'cat_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4), name });
+    saveCategories();
+    newCategoryInput.value = '';
+    populateCategorySelects();
+    renderCategoryManageList();
+    render();
+  });
+
+  newCategoryInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      addCategoryBtn.click();
+    }
+  });
+
+  closeCategoryModal.addEventListener('click', () => {
+    categoryModal.classList.remove('show');
+  });
+
+  categorySelect.addEventListener('change', () => {
+    if(categorySelect.value === '__manage__'){
+      categorySelect.value = '';
+      renderCategoryManageList();
+      categoryModal.classList.add('show');
+    } else if(categorySelect.value === '__quickadd__'){
+      quickAddCategory(categorySelect);
+    }
+  });
+  editCategorySelect.addEventListener('change', () => {
+    if(editCategorySelect.value === '__manage__'){
+      editCategorySelect.value = '';
+      renderCategoryManageList();
+      categoryModal.classList.add('show');
+    } else if(editCategorySelect.value === '__quickadd__'){
+      quickAddCategory(editCategorySelect);
+    }
+  });
 
   // Web Audio API alarm tone
   function playAlarmTone(){
@@ -542,23 +889,26 @@
     playAlarmTone();
   }
 
-  // Simple recurrence check: runs every minute, checks daily/weekly/monthly items
-  // and notifies once per day based on last notified date stored on item.
+  // Recurrence check: runs every minute, respects recurrenceStart date/time
   function checkReminders(){
     const today = new Date();
     const todayStr = formatDate(today.getTime());
+    const nowHM = today.getHours()*60 + today.getMinutes();
     let changed = false;
     items.forEach(item => {
       if(item.completed || !item.recurrence || item.recurrence === 'none') return;
+      const start = new Date(item.recurrenceStart || item.createdAt);
+      if(today < start) return; // hasn't started yet
+      const startHM = start.getHours()*60 + start.getMinutes();
+      if(nowHM < startHM) return; // today's time hasn't reached the scheduled time yet
+
       let shouldNotify = false;
       if(item.recurrence === 'daily'){
         shouldNotify = item.lastNotified !== todayStr;
       } else if(item.recurrence === 'weekly'){
-        const createdDay = new Date(item.createdAt).getDay();
-        shouldNotify = today.getDay() === createdDay && item.lastNotified !== todayStr;
+        shouldNotify = today.getDay() === start.getDay() && item.lastNotified !== todayStr;
       } else if(item.recurrence === 'monthly'){
-        const createdDate = new Date(item.createdAt).getDate();
-        shouldNotify = today.getDate() === createdDate && item.lastNotified !== todayStr;
+        shouldNotify = today.getDate() === start.getDate() && item.lastNotified !== todayStr;
       }
       if(shouldNotify){
         notify(item.title);
@@ -581,6 +931,7 @@
     });
   }
 
+  populateCategorySelects();
   render();
 })();
 </script>
