@@ -200,11 +200,18 @@
     -webkit-user-select:none;
   }
   .item.dragging{
-    opacity:0.9;
+    opacity:0.95;
     box-shadow:0 6px 16px rgba(0,0,0,0.25);
     background:#fffef8;
-    position:relative;
     z-index:50;
+    pointer-events:none;
+    transition:none;
+  }
+  .drag-placeholder{
+    border:2px dashed var(--border);
+    border-radius:10px;
+    margin-bottom:8px;
+    background:rgba(0,0,0,0.03);
   }
   .empty-msg{
     color:#999;
@@ -684,6 +691,35 @@
     let pressTimer = null;
     let dragActive = false;
     let startX = 0, startY = 0;
+    let startRect = null;
+    let placeholder = null;
+    let currentY = 0;
+    let rafId = null;
+
+    function updateDragPosition(){
+      rafId = null;
+      if(!dragActive) return;
+
+      const deltaY = currentY - startY;
+      div.style.transform = `translateY(${deltaY}px)`;
+
+      // Use the dragged item's original position + pointer delta (not its live
+      // DOM position) to decide swaps, so moving the placeholder can't feed
+      // back into this calculation and cause rapid back-and-forth swapping.
+      const draggedMid = startRect.top + startRect.height / 2 + deltaY;
+      const siblings = [...listEl.querySelectorAll('.item')].filter(el => el !== div);
+      for(const sib of siblings){
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if(draggedMid < mid && sib.previousElementSibling !== placeholder){
+          listEl.insertBefore(placeholder, sib);
+          break;
+        } else if(draggedMid >= mid && sib.nextElementSibling !== placeholder){
+          listEl.insertBefore(placeholder, sib.nextElementSibling);
+          break;
+        }
+      }
+    }
 
     function onMove(ev){
       if(!dragActive){
@@ -693,28 +729,34 @@
         return;
       }
       ev.preventDefault();
-      const y = ev.clientY;
-      const siblings = [...listEl.querySelectorAll('.item')].filter(el => el !== div);
-      for(const sib of siblings){
-        const rect = sib.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        if(y < mid && sib.previousElementSibling !== div){
-          listEl.insertBefore(div, sib);
-          break;
-        } else if(y >= mid && sib.nextElementSibling !== div){
-          listEl.insertBefore(div, sib.nextElementSibling);
-          break;
-        }
+      currentY = ev.clientY;
+      if(rafId === null){
+        rafId = requestAnimationFrame(updateDragPosition);
       }
     }
 
-    function onUp(){
+    function cleanup(){
       clearTimeout(pressTimer);
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
+      if(rafId !== null){ cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    function onUp(){
+      cleanup();
       if(dragActive){
         div.classList.remove('dragging');
+        div.style.transform = '';
+        div.style.position = '';
+        div.style.left = '';
+        div.style.top = '';
+        div.style.width = '';
+        if(placeholder && placeholder.parentNode){
+          placeholder.parentNode.insertBefore(div, placeholder);
+          placeholder.remove();
+        }
+        placeholder = null;
         finalizeReorder(listEl);
       }
       dragActive = false;
@@ -724,9 +766,22 @@
       if(e.button !== undefined && e.button !== 0) return;
       startX = e.clientX;
       startY = e.clientY;
+      currentY = e.clientY;
       pressTimer = setTimeout(() => {
         dragActive = true;
+        startRect = div.getBoundingClientRect();
+
+        placeholder = document.createElement('div');
+        placeholder.className = 'drag-placeholder';
+        placeholder.style.height = startRect.height + 'px';
+        div.parentNode.insertBefore(placeholder, div.nextSibling);
+
+        div.style.position = 'fixed';
+        div.style.left = startRect.left + 'px';
+        div.style.top = startRect.top + 'px';
+        div.style.width = startRect.width + 'px';
         div.classList.add('dragging');
+
         if(navigator.vibrate) navigator.vibrate(10);
       }, 300);
       document.addEventListener('pointermove', onMove);
