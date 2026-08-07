@@ -137,6 +137,10 @@
     padding:12px;
     margin-bottom:8px;
     transition:opacity 0.2s;
+    -webkit-touch-callout:none;
+    -webkit-user-drag:none;
+    user-select:none;
+    -webkit-user-select:none;
   }
   .item.completed{
     opacity:0.6;
@@ -764,6 +768,7 @@
 
     handle.addEventListener('pointerdown', (e) => {
       if(e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
       startX = e.clientX;
       startY = e.clientY;
       currentY = e.clientY;
